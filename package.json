@@ -1,0 +1,23 @@
+{
+  "name": "chat-task-be",
+  "version": "1.0.0",
+  "description": "BE part for the chat task https://github.com/andrislapsa/chat-task-fe",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andrislapsa/chat-task-be.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/andrislapsa/chat-task-be/issues"
+  },
+  "homepage": "https://github.com/andrislapsa/chat-task-be#readme",
+  "dependencies": {
+    "ws": "^7.3.1"
+  }
+}
