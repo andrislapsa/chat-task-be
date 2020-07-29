@@ -31,8 +31,6 @@ wss.on('connection', (ws, req) => {
   }
 
   const clientId = req.headers['sec-websocket-key'];
-  // clients excluding the current one
-  const otherClients = excludeClient(wss.clients, ws);
 
   const currentClientData = registerClient(nickname, INACTIVITY_TIMEOUT);
   clientData[clientId] = currentClientData;
@@ -45,12 +43,15 @@ wss.on('connection', (ws, req) => {
       'You got disconnected due to inactivity, try connecting again' :
       'You disconnected from the chat';
 
-    notifyClients(otherClients, formatMessage('system', notifyOthersMsg));
+    notifyClients(wss.clients, formatMessage('system', notifyOthersMsg));
+    currentClientData.destroyInactivityTimeout();
     ws.close(CLOSING_CODE, msg);
     delete clientData[clientId];
   };
 
-  currentClientData.inactivityPromise.then(() => leave(true));
+  currentClientData.inactivityPromise
+    .then(() => leave(true))
+    .catch(() => { /* user has already left */ });
 
   notifyClients(wss.clients, formatMessage('system', `${nickname} has joined the chat!`));
 
@@ -60,6 +61,6 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('close', () => {
-    leave(false);
+    if (clientData[clientId]) leave(false);
   });
 });

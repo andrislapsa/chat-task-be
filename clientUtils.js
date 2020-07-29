@@ -13,7 +13,8 @@ export function getNicknameValidationError(clientData, nickname) {
 
 export function registerClient(nickname, INACTIVITY_TIMEOUT) {
   let exposedResetInactivityTimeout;
-  const inactivityPromise = new Promise((resolve) => {
+  let exposedDestroyInactivityTimeout;
+  const inactivityPromise = new Promise((resolve, reject) => {
     let t;
     function startTimeout() {
       t = setTimeout(() => {
@@ -27,20 +28,25 @@ export function registerClient(nickname, INACTIVITY_TIMEOUT) {
       startTimeout();
     }
 
+    function destroy() {
+      clearTimeout(t);
+      reject();
+    }
+
+    exposedDestroyInactivityTimeout = destroy;
     exposedResetInactivityTimeout = resetInactivityTimeout;
   });
 
   return {
     inactivityPromise,
     nickname,
+    destroyInactivityTimeout: exposedDestroyInactivityTimeout,
     resetInactivityTimeout: exposedResetInactivityTimeout,
   }
 }
 
 export function formatMessage(type, message, nickname) {
-  const m = JSON.stringify({ type, message, nickname });
-  // console.log('formatted msg', m);
-  return m;
+  return JSON.stringify({ type, message, nickname });
 }
 
 export function excludeClient(clients, client) {
@@ -48,6 +54,7 @@ export function excludeClient(clients, client) {
 }
 
 export function notifyClients(clients, message) {
+  console.log('broadcasting', message);
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
