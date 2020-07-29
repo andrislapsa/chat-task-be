@@ -9,3 +9,8 @@ Example for 10s:
 ```
 INACTIVITY_TIMEOUT=10000 npm start
 ```
+
+## Logging server output to a file
+```
+npm start | tee log.txt
+```
