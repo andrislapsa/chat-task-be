@@ -49,10 +49,6 @@ export function formatMessage(type, message, nickname) {
   return { type, message, nickname };
 }
 
-export function excludeClient(clients, client) {
-  return [...clients].filter((c) => c !== client);
-}
-
 export function notifyClients(clients, payload) {
   const prefix = payload.nickname ? `${payload.nickname}: ` : '';
   console.log(`[${payload.type} is broadcasting]`, `${prefix}${payload.message}`);

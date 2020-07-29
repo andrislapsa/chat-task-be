@@ -3,7 +3,6 @@ import {
   getNicknameValidationError,
   getSanitizedNickname,
   registerClient,
-  excludeClient,
   notifyClients,
   formatMessage,
 } from './clientUtils.js';
