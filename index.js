@@ -1,79 +1,52 @@
-const WebSocket = require('ws');
+import WebSocket from 'ws';
+import {
+  getNicknameValidationError,
+  getSanitizedNickname,
+  registerClient,
+  excludeClient,
+  notifyClients,
+  formatMessage,
+} from './clientUtils.js';
 
-const wss = new WebSocket.Server({ port: 3030 });
 
+const INACTIVITY_TIMEOUT = 30000;
+const PORT = 3030;
+// Picked from this list as a suitable code number for app uses https://github.com/Luka967/websocket-close-codes
+const CLOSING_CODE = 4001;
+
+const wss = new WebSocket.Server({ port: PORT });
 const clientData = {};
 
-const INACTIVITY_TIMEOUT = 5000;
-
-function registerClient(client, req) {
-  const reqParams = new URLSearchParams(req.url.substr(1));
-  const nickname = reqParams.get('nickname');
-
-  let exposedResetInactivityTimeout;
-  const inactivityPromise = new Promise((resolve) => {
-    let t;
-    function startTimeout() {
-      t = setTimeout(() => {
-        resolve();
-      }, INACTIVITY_TIMEOUT)
-    }
-    startTimeout();
-
-    function resetInactivityTimeout() {
-      clearTimeout(t);
-      startTimeout();
-    }
-
-    exposedResetInactivityTimeout = resetInactivityTimeout;
-  });
-
-
-  return {
-    nickname,
-    inactivityPromise,
-    resetInactivityTimeout: exposedResetInactivityTimeout,
-  }
-}
-
-function formatMessage(type, message, nickname) {
-  const m = JSON.stringify({ type, message, nickname });
-  console.log('formatted msg', m);
-  return m;
-}
-
-function excludeClient(clients, client) {
-  return [...clients].filter((c) => c !== client);
-}
-
-function notifyClients(clients, message) {
-  clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
-    }
-  });
-}
+wss.on('listening', () => {
+  console.log(`Chat WS server running on ws://localhost:${PORT}`)
+});
 
 wss.on('connection', function connection(ws, req) {
-  const clientId = req.headers['sec-websocket-key'];
+  const nickname = getSanitizedNickname(req);
 
-  const currentClientData = registerClient(ws, req);
+  const nicknameValidationError = getNicknameValidationError(clientData, nickname);
+  if (nicknameValidationError) {
+    ws.close(CLOSING_CODE, nicknameValidationError);
+    return;
+  }
+
+  const clientId = req.headers['sec-websocket-key'];
+  // clients excluding the current one
+  const otherClients = excludeClient(wss.clients, ws);
+
+  const currentClientData = registerClient(nickname, INACTIVITY_TIMEOUT);
   clientData[clientId] = currentClientData;
 
   currentClientData.inactivityPromise.then(() => {
-    console.log('client inactive, disconnecting');
-    ws.close();
+    // console.log('client inactive, disconnecting');
+    notifyClients(otherClients, formatMessage('system', `${nickname} has left the chat due to inactivity!`));
+    ws.close(CLOSING_CODE, 'You got disconnected due to inactivity, try connecting again');
     delete clientData[clientId];
   });
 
-  const reqParams = new URLSearchParams(req.url.substr(1));
-  const nickname = reqParams.get('nickname');
+  // console.log('someone connected!', req.url, clientData);
 
-  console.log('someone connected!', req.url, clientData);
-
-  // clients excluding the current one (who sent the message)
-  const otherClients = excludeClient(wss.clients, ws);
-  notifyClients(otherClients, formatMessage('system', `${nickname} has joined the chat!`));
+  notifyClients(wss.clients, formatMessage('system', `${nickname} has joined the chat!`));
 
   ws.on('message', function incoming(data) {
     currentClientData.resetInactivityTimeout();

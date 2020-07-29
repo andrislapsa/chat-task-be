@@ -19,5 +19,6 @@
   "homepage": "https://github.com/andrislapsa/chat-task-be#readme",
   "dependencies": {
     "ws": "^7.3.1"
-  }
+  },
+  "type": "module"
 }
