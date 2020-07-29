@@ -68,3 +68,24 @@ wss.on('connection', (ws, req) => {
     if (clientData[clientId]) leave(false);
   });
 });
+
+function shutdown() {
+  console.log('closing socket connections with clients');
+  wss.clients.forEach((client) => {
+    client.close();
+  });
+
+  console.log('server teardown complete, shutting down');
+
+  process.exit(0);
+}
+
+process.once('SIGINT', () => {
+  console.log('\nSIGINT received...')
+  shutdown();
+});
+
+process.once('SIGTERM', () => {
+  console.log('\nSIGTERM received...')
+  shutdown();
+});
