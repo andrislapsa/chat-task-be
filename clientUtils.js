@@ -46,18 +46,20 @@ export function registerClient(nickname, INACTIVITY_TIMEOUT) {
 }
 
 export function formatMessage(type, message, nickname) {
-  return JSON.stringify({ type, message, nickname });
+  return { type, message, nickname };
 }
 
 export function excludeClient(clients, client) {
   return [...clients].filter((c) => c !== client);
 }
 
-export function notifyClients(clients, message) {
-  console.log('broadcasting', message);
+export function notifyClients(clients, payload) {
+  const prefix = payload.nickname ? `${payload.nickname}: ` : '';
+  console.log(`[${payload.type} is broadcasting]`, `${prefix}${payload.message}`);
+
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
+      client.send(JSON.stringify(payload));
     }
   });
 }
