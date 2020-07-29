@@ -56,8 +56,12 @@ wss.on('connection', (ws, req) => {
   notifyClients(wss.clients, formatMessage('system', `${nickname} has joined the chat!`));
 
   ws.on('message', (data) => {
+    const message = data.trim().substr(0, 255);
+
+    if (!message) return;
+
     currentClientData.resetInactivityTimeout();
-    notifyClients(wss.clients, formatMessage('user', data, nickname));
+    notifyClients(wss.clients, formatMessage('user', message, nickname));
   });
 
   ws.on('close', () => {
