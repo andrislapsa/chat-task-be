@@ -9,7 +9,7 @@ import {
 } from './clientUtils.js';
 
 
-const INACTIVITY_TIMEOUT = 30000;
+const INACTIVITY_TIMEOUT = 60000;
 const PORT = 3030;
 // Picked from this list as a suitable code number for app uses https://github.com/Luka967/websocket-close-codes
 const CLOSING_CODE = 4001;
@@ -21,7 +21,7 @@ wss.on('listening', () => {
   console.log(`Chat WS server running on ws://localhost:${PORT}`)
 });
 
-wss.on('connection', function connection(ws, req) {
+wss.on('connection', (ws, req) => {
   const nickname = getSanitizedNickname(req);
 
   const nicknameValidationError = getNicknameValidationError(clientData, nickname);
@@ -37,19 +37,29 @@ wss.on('connection', function connection(ws, req) {
   const currentClientData = registerClient(nickname, INACTIVITY_TIMEOUT);
   clientData[clientId] = currentClientData;
 
-  currentClientData.inactivityPromise.then(() => {
-    // console.log('client inactive, disconnecting');
-    notifyClients(otherClients, formatMessage('system', `${nickname} has left the chat due to inactivity!`));
-    ws.close(CLOSING_CODE, 'You got disconnected due to inactivity, try connecting again');
-    delete clientData[clientId];
-  });
+  const leave = (dueInactivity) => {
+    const notifyOthersMsg = dueInactivity ?
+      `${nickname} has left the chat due to inactivity!` :
+      `${nickname} has left the chat`;
+    const msg = dueInactivity ?
+      'You got disconnected due to inactivity, try connecting again' :
+      'You disconnected from the chat';
 
-  // console.log('someone connected!', req.url, clientData);
+    notifyClients(otherClients, formatMessage('system', notifyOthersMsg));
+    ws.close(CLOSING_CODE, msg);
+    delete clientData[clientId];
+  };
+
+  currentClientData.inactivityPromise.then(() => leave(true));
 
   notifyClients(wss.clients, formatMessage('system', `${nickname} has joined the chat!`));
 
-  ws.on('message', function incoming(data) {
+  ws.on('message', (data) => {
     currentClientData.resetInactivityTimeout();
     notifyClients(wss.clients, formatMessage('user', data, nickname));
+  });
+
+  ws.on('close', () => {
+    leave(false);
   });
 });
