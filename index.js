@@ -9,7 +9,7 @@ import {
 } from './clientUtils.js';
 
 
-const INACTIVITY_TIMEOUT = 60000;
+const INACTIVITY_TIMEOUT = process.env.INACTIVITY_TIMEOUT || 120000;
 const PORT = 3030;
 // Picked from this list as a suitable code number for app uses https://github.com/Luka967/websocket-close-codes
 const CLOSING_CODE = 4001;
